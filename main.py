@@ -22,11 +22,23 @@ def vehicle_status(credentials):
     return r.json()['response']
 
 
-def set_charging_amp(credentials, amp):
+def set_charging_amp(credentials, status, amp):
     auth = {'Authorization': 'Bearer ' + credentials['access_token']}
-    r = requests.post('https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/set_charging_amps',
-                      headers=auth, json={'charging_amps': amp})
-    print(r.json())
+    if amp == 0:
+        print("Stopping charging")
+        r = requests.post(
+            'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_stop', headers=auth)
+        print(r.json())
+    else:
+        print("Setting Charging Amp: {}".format(amp))
+        r = requests.post('https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/set_charging_amps',
+                          headers=auth, json={'charging_amps': amp})
+        print(r.json())
+        if status['charging_state'] == 'Stopped':
+            print("Starting charging")
+            r = requests.post(
+                'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_start', headers=auth)
+            print(r.json())
 
 
 def main():
@@ -55,8 +67,7 @@ def main():
             surplus, charging_power, power['battery_power'], power['grid_power']))
 
         if charging_amp != current_charging_amp:
-            print("Setting Charging Amp: {}".format(charging_amp))
-            set_charging_amp(credentials, charging_amp)
+            set_charging_amp(credentials, vehicle, charging_amp)
 
         print('\n')
         time.sleep(30)
