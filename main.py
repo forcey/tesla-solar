@@ -32,7 +32,7 @@ def set_charging_amp(credentials, status, amp):
         print(r.json())
         return
 
-    if status['charging_state'] == 'Stopped':
+    if status['charging_state'] == 'Stopped' and amp > 1:
         print("Starting charging")
         r = requests.post(
             'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_start', headers=auth)
