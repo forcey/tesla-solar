@@ -29,16 +29,17 @@ def set_charging_amp(credentials, status, amp):
         r = requests.post(
             'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_stop', headers=auth)
         print(r.json())
-    else:
-        print("Setting Charging Amp: {}".format(amp))
-        r = requests.post('https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/set_charging_amps',
-                          headers=auth, json={'charging_amps': amp})
+        return
+
+    if status['charging_state'] == 'Stopped':
+        print("Starting charging")
+        r = requests.post(
+            'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_start', headers=auth)
         print(r.json())
-        if status['charging_state'] == 'Stopped':
-            print("Starting charging")
-            r = requests.post(
-                'https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/charge_start', headers=auth)
-            print(r.json())
+    print("Setting Charging Amp: {}".format(amp))
+    r = requests.post('https://owner-api.teslamotors.com/api/1/vehicles/1492931321740893/command/set_charging_amps',
+                      headers=auth, json={'charging_amps': amp})
+    print(r.json())
 
 
 def main():
