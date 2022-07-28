@@ -35,11 +35,11 @@ def main():
     while True:
         power = power_status(credentials)
         vehicle = vehicle_status(credentials)
-        if 'charger_actual_current' not in vehicle:
+        if vehicle is None or 'charger_actual_current' not in vehicle:
             print('Cannot get vehicle status')
             time.sleep(30)
             continue
-        
+
         current_charging_amp = vehicle['charger_actual_current']
         voltage = vehicle['charger_voltage']
         charging_power = current_charging_amp * voltage
