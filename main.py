@@ -1,4 +1,5 @@
 import json
+from typing import Tuple
 import requests
 import time
 
@@ -42,6 +43,18 @@ def set_charging_amp(credentials, status, amp):
     print(r.json())
 
 
+def get_charging_power(vehicle) -> Tuple[int, int, int]:
+    if vehicle['charging_state'] == 'Stopped':
+        print("Charging is stopped")
+        return 240, 0, 0
+    else:
+        amp = vehicle['charger_actual_current']
+        voltage = vehicle['charger_voltage']
+        power = amp * voltage
+        print("Current charging {}V * {}A = {}W".format(voltage, amp, power))
+        return voltage, amp, power
+
+
 def main():
     credentials = load_credentials()
 
@@ -53,15 +66,11 @@ def main():
             time.sleep(30)
             continue
 
-        current_charging_amp = vehicle['charger_actual_current']
-        voltage = vehicle['charger_voltage']
-        charging_power = current_charging_amp * voltage
-
+        voltage, current_charging_amp, charging_power = get_charging_power(
+            vehicle)
         surplus = power['solar_power'] - power['load_power'] + charging_power
-        charging_amp = round(max(0, min(40, surplus / 240)))
+        charging_amp = round(max(0, min(40, surplus / voltage)))
 
-        print("Current charging {}V * {}A = {}W".format(voltage,
-              current_charging_amp, charging_power))
         print("Solar: {}W, Load (House): {}W".format(
             power['solar_power'], power['load_power'] - charging_power))
         print("Surplus: {}W, Load (Vehicle): {}W, Battery: {}W, Grid: {}W".format(
