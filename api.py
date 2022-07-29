@@ -28,7 +28,7 @@ class TeslaAuth(requests.auth.AuthBase):
         self.token = r.json()
         self.token['issued_at'] = time.time()
         with open(self.file, 'w') as f:
-            json.dump(self.token, f)
+            json.dump(self.token, f, indent=2)
 
 
 class TeslaAPI:
