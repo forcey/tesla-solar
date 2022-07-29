@@ -90,10 +90,10 @@ def main():
         surplus = power['solar_power'] - \
             power['load_power'] + current_charging_power
 
-        print("Solar: {}W, Load (House): {}W".format(
+        print("Solar: {}W -> House: {}W".format(
             power['solar_power'], power['load_power'] - current_charging_power))
-        print("Surplus: {}W, Load (Vehicle): {}W, Battery: {}W, Grid: {}W".format(
-            surplus, current_charging_power, power['battery_power'], power['grid_power']))
+        print("Surplus: {}W -> Vehicle: {}W, Powerwall: {}W, Grid: {}W".format(
+            surplus, -current_charging_power, power['battery_power'], power['grid_power']))
 
         next_charging_power = max(0, surplus - powerwall_power)
         if abs(next_charging_power - current_charging_power) > 500:
