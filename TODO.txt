@@ -2,10 +2,15 @@ Auth
 - Initial auth
 - Fetch ids from the API
 
+API
+- Retry for transient errors
+
 Power management
 - Manage multiple vehicles
 - Handle vehicle full
-- Some kind of smoothing function for unstable weather
+- Some kind of smoothing function for unstable weather / intermittent load
+  - Average through the last few readings. Determine N from stdev?
+  - PID controller?
   - Predict solar generation / load based on historical data?
 
 Bells and whistles
