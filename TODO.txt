@@ -1,6 +1,5 @@
 Auth
 - Initial auth
-- Refresh token
 - Fetch ids from the API
 
 Power management

@@ -5,11 +5,6 @@ import api
 from typing import Tuple
 
 
-def create_api() -> api.Tesla:
-    with open('credentials.json', 'r') as f:
-        return api.Tesla(json.load(f))
-
-
 def load_ids():
     with open('id.json', 'r') as f:
         return json.load(f)
@@ -44,7 +39,7 @@ def get_charging_power(vehicle) -> Tuple[int, int, int]:
 
 
 def main():
-    tesla = create_api()
+    tesla = api.TeslaAPI(api.TeslaAuth('credentials.json'))
     ids = load_ids()
 
     site_id = ids['energy']
@@ -72,7 +67,7 @@ def main():
             surplus, charging_power, power['battery_power'], power['grid_power']))
 
         if charging_amp != current_charging_amp:
-            set_charging_amp(tesla, vehicle, charging_amp)
+            set_charging_amp(tesla, vehicle_id, vehicle, charging_amp)
 
         print('\n')
         time.sleep(30)
