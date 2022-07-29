@@ -28,7 +28,7 @@ class Vehicle:
             print(r.json())
             return
 
-        if self.status['charging_state'] == 'Stopped' and amp > 1:
+        if self.status['charging_state'] == 'Stopped':
             print("Starting charging")
             r = self.api.charge_start(self.vehicle_id)
             print(r.json())
@@ -54,14 +54,10 @@ class Vehicle:
 
 def get_powerwall_power(powerwall) -> int:
     percent = powerwall['percentage_charged']
-    if percent < 89:
+    if percent < 90:
         print(
             "Powerwall is {:.2f}% charged, allowing 5kW to powerwall.".format(percent))
         return 5000
-    if percent > 91:
-        print(
-            "Powerwall is {:.2f}% charged, allowing -5kW from powerwall.".format(percent))
-        return -5000
     print("Powerwall is {:.2f}% charged, holding".format(percent))
     return 0
 
@@ -91,14 +87,14 @@ def main():
             power['load_power'] + current_charging_power
 
         print("Solar: {}W -> House: {}W".format(
-            power['solar_power'], power['load_power'] - current_charging_power))
+            round(power['solar_power']), round(power['load_power'] - current_charging_power)))
         print("Surplus: {}W -> Vehicle: {}W, Powerwall: {}W, Grid: {}W".format(
-            surplus, -current_charging_power, power['battery_power'], power['grid_power']))
+            round(surplus), round(-current_charging_power), round(power['battery_power']), round(power['grid_power'])))
 
         next_charging_power = max(0, surplus - powerwall_power)
         if abs(next_charging_power - current_charging_power) > 500:
             print("Charging power is {}W, setting to {}W".format(
-                current_charging_power, next_charging_power))
+                round(current_charging_power), round(next_charging_power)))
             vehicle.set_charging_power(next_charging_power, voltage)
 
         print('\n')
