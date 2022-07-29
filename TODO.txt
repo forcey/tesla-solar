@@ -5,7 +5,6 @@ Auth
 Power management
 - Manage multiple vehicles
 - Handle vehicle full
-- Manage powerwall charge level
 - Some kind of smoothing function for unstable weather
   - Predict solar generation / load based on historical data?
 

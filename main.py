@@ -21,7 +21,7 @@ class Vehicle:
             self.vehicle_id).json()['response']
         return self.status
 
-    def set_charging_amp(self, amp):
+    def _set_charging_amp(self, amp):
         if amp == 0:
             print("Stopping charging")
             r = self.api.charge_stop(self.vehicle_id)
@@ -47,14 +47,20 @@ class Vehicle:
             print("Current charging {}V * {}A = {}W".format(voltage, amp, power))
             return voltage, amp, power
 
+    def set_charging_power(self, power, voltage):
+        amp = round(max(0, min(40, power / voltage)))
+        self._set_charging_amp(amp)
+
 
 def get_powerwall_power(powerwall) -> int:
     percent = powerwall['percentage_charged']
     if percent < 89:
-        print("Powerwall is {:.2f}% charged, allowing 5kW".format(percent))
+        print(
+            "Powerwall is {:.2f}% charged, allowing 5kW to powerwall.".format(percent))
         return 5000
     if percent > 91:
-        print("Powerwall is {:.2f}% charged, allowing -5kW".format(percent))
+        print(
+            "Powerwall is {:.2f}% charged, allowing -5kW from powerwall.".format(percent))
         return -5000
     print("Powerwall is {:.2f}% charged, holding".format(percent))
     return 0
@@ -79,18 +85,21 @@ def main():
             print('Charger is disconnected')
             break
 
-        voltage, current_charging_amp, charging_power = vehicle.get_charging_power()
+        voltage, _, current_charging_power = vehicle.get_charging_power()
         powerwall_power = get_powerwall_power(power)
-        surplus = power['solar_power'] - power['load_power'] + charging_power
+        surplus = power['solar_power'] - \
+            power['load_power'] + current_charging_power
 
         print("Solar: {}W, Load (House): {}W".format(
-            power['solar_power'], power['load_power'] - charging_power))
+            power['solar_power'], power['load_power'] - current_charging_power))
         print("Surplus: {}W, Load (Vehicle): {}W, Battery: {}W, Grid: {}W".format(
-            surplus, charging_power, power['battery_power'], power['grid_power']))
+            surplus, current_charging_power, power['battery_power'], power['grid_power']))
 
-        charging_amp = round(max(0, min(40, surplus / voltage)))
-        if charging_amp != current_charging_amp:
-            vehicle.set_charging_amp(charging_amp)
+        next_charging_power = max(0, surplus - powerwall_power)
+        if abs(next_charging_power - current_charging_power) > 500:
+            print("Charging power is {}W, setting to {}W".format(
+                current_charging_power, next_charging_power))
+            vehicle.set_charging_power(next_charging_power, voltage)
 
         print('\n')
         time.sleep(30)
