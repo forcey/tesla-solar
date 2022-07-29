@@ -55,9 +55,12 @@ class Vehicle:
 def get_powerwall_power(powerwall) -> int:
     percent = powerwall['percentage_charged']
     if percent < 90:
+        # Watts required to charge to 90% in 5 minutes.
+        watts = min(5000, (90-percent) *
+                    powerwall['total_pack_energy'] / 100 * 60 / 5)
         print(
-            "Powerwall is {:.2f}% charged, allowing 5kW to powerwall.".format(percent))
-        return 5000
+            "Powerwall is {:.2f}% charged, allowing {}W to powerwall.".format(percent, round(watts)))
+        return watts
     print("Powerwall is {:.2f}% charged, holding".format(percent))
     return 0
 
