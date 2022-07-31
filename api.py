@@ -35,12 +35,22 @@ class TeslaAPI:
     def __init__(self, auth):
         self.auth = auth
 
-    def power_status(self, site_id):
+    # Product list API
+    def product_list(self):
         return requests.get(
-            f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status',
+            'https://owner-api.teslamotors.com/api/1/products',
             auth=self.auth)
 
-    def vehicle_status(self, vehicle_id):
+    # Vehicle API
+    def vehicle_config(self, vehicle_id):
+        return requests.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}', auth=self.auth)
+
+    def wake_up(self, vehicle_id):
+        return requests.post(
+            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/wake_up',
+            auth=self.auth)
+
+    def charge_state(self, vehicle_id):
         return requests.get(
             f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/data_request/charge_state',
             auth=self.auth)
@@ -60,3 +70,9 @@ class TeslaAPI:
             f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/set_charging_amps',
             auth=self.auth,
             json={'charging_amps': amp})
+
+    # Powerwall API
+    def power_status(self, site_id):
+        return requests.get(
+            f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status',
+            auth=self.auth)

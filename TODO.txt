@@ -1,13 +1,10 @@
 Auth
 - Initial auth
-- Fetch ids from the API
 
 API
 - Retry for transient errors
 
 Power management
-- Manage multiple vehicles
-- Handle vehicle full
 - Exclude offsite charging sessions
 - Some kind of smoothing function for unstable weather / intermittent load
   - Average through the last few readings. Determine N from stdev?
