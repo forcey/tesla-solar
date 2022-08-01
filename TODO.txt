@@ -11,7 +11,7 @@ Power management
 Bells and whistles
 - Web management interface
 - Containerize for remote hosting
-  - How to see logs?
+  - Some kind of secret management
 - Multiple users
 - Notifications
 - Start/stop at sunrise/sunset
