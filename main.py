@@ -113,7 +113,8 @@ def start_session(vehicle, powerwall):
 
         powerwall_power = powerwall.allocate_power()
         next_charging_power = max(0, surplus - powerwall_power)
-        if abs(next_charging_power - current_charging_power) > 500 or next_charging_power == 0:
+        if abs(next_charging_power - current_charging_power) > 500 or \
+                (current_charging_power > 0 and next_charging_power == 0):
             print("Charging power is {}W, setting to {}W".format(
                 round(current_charging_power), round(next_charging_power)))
             vehicle.set_charging_power(next_charging_power, voltage)
