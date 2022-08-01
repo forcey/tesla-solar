@@ -1,9 +1,6 @@
 Auth
 - Initial auth
 
-API
-- Retry for transient errors
-
 Power management
 - Exclude offsite charging sessions
 - Some kind of smoothing function for unstable weather / intermittent load
@@ -16,3 +13,4 @@ Bells and whistles
 - Containerize for remote hosting
 - Multiple users
 - Notifications
+- Start/stop at sunrise/sunset

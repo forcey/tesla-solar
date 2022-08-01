@@ -33,46 +33,36 @@ class TeslaAuth(requests.auth.AuthBase):
 
 class TeslaAPI:
     def __init__(self, auth):
-        self.auth = auth
+        self.session = requests.Session()
+        self.session.auth = auth
+        self.session.mount(
+            'https://', requests.adapters.HTTPAdapter(max_retries=3))
 
     # Product list API
+
     def product_list(self):
-        return requests.get(
-            'https://owner-api.teslamotors.com/api/1/products',
-            auth=self.auth)
+        return self.session.get('https://owner-api.teslamotors.com/api/1/products')
 
     # Vehicle API
     def vehicle_config(self, vehicle_id):
-        return requests.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}', auth=self.auth)
+        return self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}')
 
     def wake_up(self, vehicle_id):
-        return requests.post(
-            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/wake_up',
-            auth=self.auth)
+        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/wake_up')
 
     def charge_state(self, vehicle_id):
-        return requests.get(
-            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/data_request/charge_state',
-            auth=self.auth)
+        return self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/data_request/charge_state')
 
     def charge_stop(self, vehicle_id):
-        return requests.post(
-            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_stop',
-            auth=self.auth)
+        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_stop')
 
     def charge_start(self, vehicle_id):
-        return requests.post(
-            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_start',
-            auth=self.auth)
+        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_start')
 
     def set_charging_amp(self, vehicle_id, amp):
-        return requests.post(
-            f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/set_charging_amps',
-            auth=self.auth,
-            json={'charging_amps': amp})
+        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/set_charging_amps',
+                                 json={'charging_amps': amp})
 
     # Powerwall API
     def power_status(self, site_id):
-        return requests.get(
-            f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status',
-            auth=self.auth)
+        return self.session.get(f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status')
