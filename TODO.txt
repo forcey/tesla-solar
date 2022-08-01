@@ -2,6 +2,9 @@ Auth
 - Initial auth
 
 Power management
+- Wake up asleep vehicle as needed
+  - When there is significant surplus power
+  - If disconnected, don't wake up again until the next day.
 - Exclude offsite charging sessions
 - Some kind of smoothing function for unstable weather / intermittent load
   - Average through the last few readings. Determine N from stdev?
@@ -11,6 +14,7 @@ Power management
 Bells and whistles
 - Web management interface
 - Containerize for remote hosting
+  - Multiple architecture image
   - Some kind of secret management
 - Multiple users
 - Notifications
