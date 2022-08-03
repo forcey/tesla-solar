@@ -1,3 +1,4 @@
+import datetime
 import time
 import api
 
@@ -94,7 +95,7 @@ class StatCounter:
         self.sum += value
         if len(self.values) > self.cap:
             self.sum -= self.values.pop(0)
-    
+
     def length(self) -> int:
         return len(self.values)
 
@@ -108,8 +109,11 @@ class StatCounter:
 def start_session(vehicle, powerwall):
     print("Starting session with vehicle {} and powerwall {}".format(
         vehicle.display_name, powerwall.display_name))
+
+    solar_counter = StatCounter(cap=100)
     surplus_counter = StatCounter(cap=10)
     while True:
+        print(datetime.datetime.now())
         power = powerwall.refresh_status()
         status = vehicle.refresh_status()
         if status == 'asleep':
@@ -126,6 +130,12 @@ def start_session(vehicle, powerwall):
             return
 
         voltage, _, current_charging_power = vehicle.get_charging_power()
+        solar_counter.add(power['solar_power'])
+        if solar_counter.length() > 10 and solar_counter.get_average() < 1000:
+            print("Solar power in the last {} minutes is {}W, exiting.".format(
+                solar_counter.length() / 2, round(solar_counter.get_average())))
+            exit()
+
         surplus = power['solar_power'] - \
             power['load_power'] + current_charging_power
 
@@ -136,7 +146,8 @@ def start_session(vehicle, powerwall):
 
         surplus_counter.add(surplus)
         average_surplus = surplus_counter.get_average()
-        print("Average surplus of the last {} values: {}W".format(surplus_counter.length(), round(average_surplus)))
+        print("Average surplus of the last {} values: {}W".format(
+            surplus_counter.length(), round(average_surplus)))
 
         powerwall_power = powerwall.allocate_power()
         next_charging_power = max(0, average_surplus - powerwall_power)
