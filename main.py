@@ -83,9 +83,32 @@ class Powerwall:
         return 0
 
 
+class StatCounter:
+    def __init__(self, cap) -> None:
+        self.cap = cap
+        self.values = []
+        self.sum = 0
+
+    def add(self, value):
+        self.values.append(value)
+        self.sum += value
+        if len(self.values) > self.cap:
+            self.sum -= self.values.pop(0)
+    
+    def length(self) -> int:
+        return len(self.values)
+
+    def get_average(self):
+        return float(self.sum) / len(self.values)
+
+    def get_latest(self):
+        return self.values[-1]
+
+
 def start_session(vehicle, powerwall):
     print("Starting session with vehicle {} and powerwall {}".format(
         vehicle.display_name, powerwall.display_name))
+    surplus_counter = StatCounter(cap=10)
     while True:
         power = powerwall.refresh_status()
         status = vehicle.refresh_status()
@@ -111,8 +134,12 @@ def start_session(vehicle, powerwall):
         print("Surplus: {}W -> Vehicle: {}W, Powerwall: {}W, Grid: {}W".format(
             round(surplus), round(-current_charging_power), round(power['battery_power']), round(power['grid_power'])))
 
+        surplus_counter.add(surplus)
+        average_surplus = surplus_counter.get_average()
+        print("Average surplus of the last {} values: {}W".format(surplus_counter.length(), round(average_surplus)))
+
         powerwall_power = powerwall.allocate_power()
-        next_charging_power = max(0, surplus - powerwall_power)
+        next_charging_power = max(0, average_surplus - powerwall_power)
         if abs(next_charging_power - current_charging_power) > 500 or \
                 (current_charging_power > 0 and next_charging_power == 0):
             print("Charging power is {}W, setting to {}W".format(

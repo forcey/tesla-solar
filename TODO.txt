@@ -6,8 +6,8 @@ Power management
   - When there is significant surplus power
   - If disconnected, don't wake up again until the next day.
 - Exclude offsite charging sessions
-- Some kind of smoothing function for unstable weather / intermittent load
-  - Average through the last few readings. Determine N from stdev?
+- Smarter smoothing function
+  - Determine N by stdev?
   - PID controller?
   - Predict solar generation / load based on historical data?
 
