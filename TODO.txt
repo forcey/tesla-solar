@@ -1,3 +1,8 @@
+Error handling
+- Gracefully handle errors
+- Log errors
+- Send alert emails
+
 Auth
 - Initial auth
 
@@ -19,3 +24,5 @@ Bells and whistles
 - Multiple users
 - Notifications
 - Start/stop at sunrise/sunset
+  - Move solar stats to Powerwall class
+  - Monitor solar output off-session
