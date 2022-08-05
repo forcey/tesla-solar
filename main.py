@@ -12,18 +12,13 @@ class Vehicle:
         self.display_name = display_name
 
     def refresh_status(self):
-        config = self.api.vehicle_config(self.vehicle_id).json()['response']
+        config = self.api.get_response(
+            self.api.vehicle_config(self.vehicle_id))
         if config['state'] == 'asleep':
             return 'asleep'
         else:
-            json = self.api.charge_state(self.vehicle_id).json()
-            self.charge_state_json = json['response']
-            if self.charge_state_json is None:
-                print("Cannot get charge state for {}, response: {}".format(
-                    self.display_name, json))
-            if 'charger_actual_current' not in self.charge_state_json:
-                print("Cannot get charger_actual_current for {}, response: {}".format(
-                    self.display_name, json))
+            self.charge_state_json = self.api.get_response(
+                self.api.charge_state(self.vehicle_id))
             return self.charge_state_json['charging_state']
 
     def wake_up(self):
@@ -68,7 +63,8 @@ class Powerwall:
         self.display_name = display_name
 
     def refresh_status(self):
-        self.status = self.api.power_status(self.site_id).json()['response']
+        self.status = self.api.get_response(
+            self.api.power_status(self.site_id))
         return self.status
 
     def allocate_power(self) -> int:
@@ -106,34 +102,55 @@ class StatCounter:
         return self.values[-1]
 
 
-def start_session(vehicle, powerwall):
-    print("Starting session with vehicle {} and powerwall {}".format(
-        vehicle.display_name, powerwall.display_name))
+class Session:
+    def __init__(self, vehicle, powerwall) -> None:
+        self._vehicle = vehicle
+        self._powerwall = powerwall
+        self._solar_counter = StatCounter(cap=100)
+        self._surplus_counter = StatCounter(cap=10)
+        pass
 
-    solar_counter = StatCounter(cap=100)
-    surplus_counter = StatCounter(cap=10)
-    while True:
-        print(datetime.datetime.now())
-        power = powerwall.refresh_status()
-        status = vehicle.refresh_status()
-        if status == 'asleep':
-            print('Vehicle is asleep, waking up')
-            vehicle.wake_up()
+    def start(self):
+        print("Starting session with vehicle {} and powerwall {}".format(
+            self._vehicle.display_name, self._powerwall.display_name))
+
+        error_count = 0
+        while True:
+            try:
+                if self._cycle():
+                    error_count = 0
+                else:
+                    break
+            except api.APIError as e:
+                error_count += 1
+                print("Error #{}: {}".format(error_count, e))
+                if error_count >= 3:
+                    print("Too many errors, ending session")
+                    break
             print('\n')
             time.sleep(30)
-            continue
+
+    # Returns True if the loop should continue, False if it should end.
+    def _cycle(self) -> bool:
+        print(datetime.datetime.now())
+        power = self._powerwall.refresh_status()
+        status = self._vehicle.refresh_status()
+        if status == 'asleep':
+            print('Vehicle is asleep, waking up')
+            self._vehicle.wake_up()
+            return True
         if status == 'Disconnected':
             print('Charger is disconnected, session completed.')
-            return
+            return False
         if status == 'Complete':
             print('Charging is completed, session completed.')
-            return
+            return False
 
-        voltage, _, current_charging_power = vehicle.get_charging_power()
-        solar_counter.add(power['solar_power'])
-        if solar_counter.length() > 10 and solar_counter.get_average() < 1000:
+        voltage, _, current_charging_power = self._vehicle.get_charging_power()
+        self._solar_counter.add(power['solar_power'])
+        if self._solar_counter.length() > 10 and self._solar_counter.get_average() < 1000:
             print("Solar power in the last {} minutes is {}W, exiting.".format(
-                solar_counter.length() / 2, round(solar_counter.get_average())))
+                self._solar_counter.length() / 2, round(self._solar_counter.get_average())))
             exit()
 
         surplus = power['solar_power'] - \
@@ -144,21 +161,19 @@ def start_session(vehicle, powerwall):
         print("Surplus: {}W -> Vehicle: {}W, Powerwall: {}W, Grid: {}W".format(
             round(surplus), round(-current_charging_power), round(power['battery_power']), round(power['grid_power'])))
 
-        surplus_counter.add(surplus)
-        average_surplus = surplus_counter.get_average()
+        self._surplus_counter.add(surplus)
+        average_surplus = self._surplus_counter.get_average()
         print("Average surplus of the last {} values: {}W".format(
-            surplus_counter.length(), round(average_surplus)))
+            self._surplus_counter.length(), round(average_surplus)))
 
-        powerwall_power = powerwall.allocate_power()
+        powerwall_power = self._powerwall.allocate_power()
         next_charging_power = max(0, average_surplus - powerwall_power)
-        if abs(next_charging_power - current_charging_power) > 500 or \
+        if abs(next_charging_power - current_charging_power) > 250 or \
                 (current_charging_power > 0 and next_charging_power == 0):
             print("Charging power is {}W, setting to {}W".format(
                 round(current_charging_power), round(next_charging_power)))
-            vehicle.set_charging_power(next_charging_power, voltage)
-
-        print('\n')
-        time.sleep(30)
+            self._vehicle.set_charging_power(next_charging_power, voltage)
+        return True
 
 
 def main():
@@ -167,7 +182,7 @@ def main():
     # Find available products
     vehicles = []
     powerwalls = []
-    products = tesla.product_list().json()['response']
+    products = tesla.get_response(tesla.product_list())
     for product in products:
         if 'vin' in product:
             print("Found vehicle: {}".format(product['display_name']))
@@ -191,7 +206,8 @@ def main():
                 print("Vehicle {} is completed".format(vehicle.display_name))
                 continue
 
-            start_session(vehicle, powerwalls[0])
+            session = Session(vehicle, powerwalls[0])
+            session.start()
 
         print('\n')
         time.sleep(30)

@@ -31,6 +31,10 @@ class TeslaAuth(requests.auth.AuthBase):
             json.dump(self.token, f, indent=2)
 
 
+class APIError(Exception):
+    pass
+
+
 class TeslaAPI:
     def __init__(self, auth):
         self.session = requests.Session()
@@ -39,7 +43,6 @@ class TeslaAPI:
             'https://', requests.adapters.HTTPAdapter(max_retries=3))
 
     # Product list API
-
     def product_list(self):
         return self.session.get('https://owner-api.teslamotors.com/api/1/products')
 
@@ -66,3 +69,14 @@ class TeslaAPI:
     # Powerwall API
     def power_status(self, site_id):
         return self.session.get(f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status')
+
+    # JSON API
+    def get_response(self, r: requests.Response):
+        try:
+            js = r.json()
+        except requests.exceptions.JSONDecodeError:
+            raise APIError(f'Cannot decode JSON: {r.text}')
+        if js['response'] is not None:
+            return js['response']
+        else:
+            raise APIError(f'No response: {js["error"]}')
