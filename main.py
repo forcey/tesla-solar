@@ -21,22 +21,22 @@ class Vehicle:
 
     def wake_up(self):
         r = self.api.wake_up(self.vehicle_id)
-        print(r.json())
+        print(r.response())
 
     def _set_charging_amp(self, amp):
         if amp == 0:
             print("Stopping charging")
             r = self.api.charge_stop(self.vehicle_id)
-            print(r.json())
+            print(r.response())
             return
 
         if self.charge_state.get('charging_state') == 'Stopped':
             print("Starting charging")
             r = self.api.charge_start(self.vehicle_id)
-            print(r.json())
+            print(r.response())
         print("Setting Charging Amp: {}".format(amp))
         r = self.api.set_charging_amp(self.vehicle_id, amp)
-        print(r.json())
+        print(r.response())
 
     def get_charging_power(self) -> Tuple[int, int, int]:
         if self.charge_state.get('charging_state') == 'Stopped':
