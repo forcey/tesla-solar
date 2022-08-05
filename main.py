@@ -12,14 +12,12 @@ class Vehicle:
         self.display_name = display_name
 
     def refresh_status(self):
-        config = self.api.get_response(
-            self.api.vehicle_config(self.vehicle_id))
-        if config['state'] == 'asleep':
+        config = self.api.vehicle_config(self.vehicle_id)
+        if config.get('state') == 'asleep':
             return 'asleep'
         else:
-            self.charge_state_json = self.api.get_response(
-                self.api.charge_state(self.vehicle_id))
-            return self.charge_state_json['charging_state']
+            self.charge_state = self.api.charge_state(self.vehicle_id)
+            return self.charge_state.get('charging_state')
 
     def wake_up(self):
         r = self.api.wake_up(self.vehicle_id)
@@ -32,7 +30,7 @@ class Vehicle:
             print(r.json())
             return
 
-        if self.charge_state_json['charging_state'] == 'Stopped':
+        if self.charge_state.get('charging_state') == 'Stopped':
             print("Starting charging")
             r = self.api.charge_start(self.vehicle_id)
             print(r.json())
@@ -41,12 +39,12 @@ class Vehicle:
         print(r.json())
 
     def get_charging_power(self) -> Tuple[int, int, int]:
-        if self.charge_state_json['charging_state'] == 'Stopped':
+        if self.charge_state.get('charging_state') == 'Stopped':
             print("Charging is stopped")
             return 240, 0, 0
         else:
-            amp = self.charge_state_json['charger_actual_current']
-            voltage = self.charge_state_json['charger_voltage']
+            amp = self.charge_state.get('charger_actual_current')
+            voltage = self.charge_state.get('charger_voltage')
             power = amp * voltage
             print("Current charging {}V * {}A = {}W".format(voltage, amp, power))
             return voltage, amp, power
@@ -63,16 +61,15 @@ class Powerwall:
         self.display_name = display_name
 
     def refresh_status(self):
-        self.status = self.api.get_response(
-            self.api.power_status(self.site_id))
+        self.status = self.api.power_status(self.site_id)
         return self.status
 
     def allocate_power(self) -> int:
-        percent = self.status['percentage_charged']
+        percent = self.status.get('percentage_charged')
         if percent < 90:
             # Watts required to charge to 90% in 5 minutes.
             watts = min(5000, (90-percent) *
-                        self.status['total_pack_energy'] / 100 * 60 / 5)
+                        self.status.get('total_pack_energy') / 100 * 60 / 5)
             print(
                 "Powerwall is {:.2f}% charged, allowing {}W to powerwall.".format(percent, round(watts)))
             return watts
@@ -147,19 +144,19 @@ class Session:
             return False
 
         voltage, _, current_charging_power = self._vehicle.get_charging_power()
-        self._solar_counter.add(power['solar_power'])
+        self._solar_counter.add(power.get('solar_power'))
         if self._solar_counter.length() > 10 and self._solar_counter.get_average() < 1000:
             print("Solar power in the last {} minutes is {}W, exiting.".format(
                 self._solar_counter.length() / 2, round(self._solar_counter.get_average())))
             exit()
 
-        surplus = power['solar_power'] - \
-            power['load_power'] + current_charging_power
+        surplus = power.get('solar_power') - \
+            power.get('load_power') + current_charging_power
 
         print("Solar: {}W -> House: {}W".format(
-            round(power['solar_power']), round(power['load_power'] - current_charging_power)))
+            round(power.get('solar_power')), round(power.get('load_power') - current_charging_power)))
         print("Surplus: {}W -> Vehicle: {}W, Powerwall: {}W, Grid: {}W".format(
-            round(surplus), round(-current_charging_power), round(power['battery_power']), round(power['grid_power'])))
+            round(surplus), round(-current_charging_power), round(power.get('battery_power')), round(power.get('grid_power'))))
 
         self._surplus_counter.add(surplus)
         average_surplus = self._surplus_counter.get_average()
@@ -182,8 +179,8 @@ def main():
     # Find available products
     vehicles = []
     powerwalls = []
-    products = tesla.get_response(tesla.product_list())
-    for product in products:
+    products = tesla.product_list()
+    for product in products.response():
         if 'vin' in product:
             print("Found vehicle: {}".format(product['display_name']))
             vehicles.append(

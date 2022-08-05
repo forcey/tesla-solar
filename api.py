@@ -35,6 +35,31 @@ class APIError(Exception):
     pass
 
 
+class APIResponse:
+    def __init__(self, r):
+        self._r = r
+
+        try:
+            r.raise_for_status()
+            js = r.json()
+        except requests.HTTPError as e:
+            raise APIError(e) from e
+        except requests.exceptions.JSONDecodeError as e:
+            raise APIError(f'Cannot decode JSON: {self.text}') from e
+        if js['response'] is not None:
+            self._response = js['response']
+        else:
+            raise APIError(f'No response: {js["error"]}')
+
+    def response(self):
+        return self._response
+        
+    def get(self, key):
+        if key not in self._response:
+            raise APIError(f'Key {key} not found in response')
+        return self._response[key]
+
+
 class TeslaAPI:
     def __init__(self, auth):
         self.session = requests.Session()
@@ -44,39 +69,28 @@ class TeslaAPI:
 
     # Product list API
     def product_list(self):
-        return self.session.get('https://owner-api.teslamotors.com/api/1/products')
+        return APIResponse(self.session.get('https://owner-api.teslamotors.com/api/1/products'))
 
     # Vehicle API
     def vehicle_config(self, vehicle_id):
-        return self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}')
+        return APIResponse(self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}'))
 
     def wake_up(self, vehicle_id):
-        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/wake_up')
+        return APIResponse(self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/wake_up'))
 
     def charge_state(self, vehicle_id):
-        return self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/data_request/charge_state')
+        return APIResponse(self.session.get(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/data_request/charge_state'))
 
     def charge_stop(self, vehicle_id):
-        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_stop')
+        return APIResponse(self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_stop'))
 
     def charge_start(self, vehicle_id):
-        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_start')
+        return APIResponse(self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/charge_start'))
 
     def set_charging_amp(self, vehicle_id, amp):
-        return self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/set_charging_amps',
-                                 json={'charging_amps': amp})
+        return APIResponse(self.session.post(f'https://owner-api.teslamotors.com/api/1/vehicles/{vehicle_id}/command/set_charging_amps',
+                                             json={'charging_amps': amp}))
 
     # Powerwall API
     def power_status(self, site_id):
-        return self.session.get(f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status')
-
-    # JSON API
-    def get_response(self, r: requests.Response):
-        try:
-            js = r.json()
-        except requests.exceptions.JSONDecodeError:
-            raise APIError(f'Cannot decode JSON: {r.text}')
-        if js['response'] is not None:
-            return js['response']
-        else:
-            raise APIError(f'No response: {js["error"]}')
+        return APIResponse(self.session.get(f'https://owner-api.teslamotors.com/api/1/energy_sites/{site_id}/live_status'))
