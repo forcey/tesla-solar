@@ -1,6 +1,7 @@
 import datetime
 import time
 import api
+import os
 
 from typing import Tuple
 
@@ -174,7 +175,8 @@ class Session:
 
 
 def main():
-    tesla = api.TeslaAPI(api.TeslaAuth('credentials.json'))
+    path = os.environ.get('CREDENTIALS', 'credentials.json')
+    tesla = api.TeslaAPI(api.TeslaAuth(path))
 
     # Find available products
     vehicles = []

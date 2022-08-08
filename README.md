@@ -1,7 +1,7 @@
 To build docker image & run locally (M1):
 ```
 docker buildx build --platform=linux/arm64 -t tesla-solar:arm64 .
-docker run -d --rm tesla-solar:arm64
+docker run -d -v $PWD:/data -e CREDENTIALS=/data/credentials.json tesla-solar:arm64
 ```
 
 To build docker image & run remotely (x86):
