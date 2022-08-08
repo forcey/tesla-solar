@@ -61,7 +61,7 @@ class Powerwall:
         self.api = api
         self.site_id = site_id
         self.display_name = display_name
-        self._solar_counter = StatCounter(cap=900)
+        self._solar_counter = StatCounter(cap=30*60)
 
     def refresh_status(self):
         self.status = self.api.power_status(self.site_id)
@@ -158,8 +158,8 @@ class Session:
         print(datetime.datetime.now())
         power = self._powerwall.refresh_status()
         status = self._vehicle.refresh_status()
-        if not (is_daytime() and self._powerwall.has_enough_power()):
-            print("Outside of day time and not enough power, ending session.")
+        if not self._powerwall.has_enough_power():
+            print("Not enough solar power, ending session.")
             return False
         if status == 'asleep':
             print('Vehicle is asleep, waking up')
@@ -218,9 +218,15 @@ def main():
     powerwall = powerwalls[0]
     while True:
         powerwall.refresh_status()
-        if not (is_daytime() and powerwall.has_enough_power()):
-            print("Outside of day time and not enough power, sleeping for an hour.")
-            time.sleep(3600)
+        if not (powerwall.percent_charged() > 80 and powerwall.has_enough_power()):
+            if is_daytime():
+                print("Powerwall is {:.2f}% charged, with {}W of solar power. Checking again in 15 minutes.".format(
+                    powerwall.percent_charged(), round(powerwall.status.get('solar_power'))))
+                time.sleep(15 * 60)
+            else:
+                print("Outside of day time, checking again in an hour.")
+                time.sleep(3600)
+            continue
 
         for vehicle in vehicles:
             status = vehicle.refresh_status()
@@ -237,8 +243,8 @@ def main():
             session = Session(vehicle, powerwall)
             session.start()
 
-        print('\n')
-        time.sleep(300)
+        print('Checking again in 5 minutes.')
+        time.sleep(5 * 60)
 
 
 if __name__ == '__main__':
