@@ -3,6 +3,7 @@ import time
 import api
 import os
 
+from zoneinfo import ZoneInfo
 from typing import Tuple
 
 
@@ -60,13 +61,26 @@ class Powerwall:
         self.api = api
         self.site_id = site_id
         self.display_name = display_name
+        self._solar_counter = StatCounter(cap=900)
 
     def refresh_status(self):
         self.status = self.api.power_status(self.site_id)
+        self._solar_counter.add(self.status.get('solar_power'))
         return self.status
 
+    def percent_charged(self):
+        return self.status.get('percentage_charged')
+
+    def has_enough_power(self) -> bool:
+        if self._solar_counter.get_average() > 1000:
+            return True
+        else:
+            print("Average solar input in the last {} readings is {}W".format(
+                self._solar_counter.length(), self._solar_counter.get_average()))
+            return False
+
     def allocate_power(self) -> int:
-        percent = self.status.get('percentage_charged')
+        percent = self.percent_charged()
         if percent < 90:
             # Watts required to charge to 90% in 5 minutes.
             watts = min(5000, (90-percent) *
@@ -79,16 +93,26 @@ class Powerwall:
 
 
 class StatCounter:
+    # Cap in seconds
     def __init__(self, cap) -> None:
         self.cap = cap
+        # Elements are (timestamp, value)
         self.values = []
         self.sum = 0
 
     def add(self, value):
-        self.values.append(value)
+        self.values.append((time.time(), value))
         self.sum += value
-        if len(self.values) > self.cap:
-            self.sum -= self.values.pop(0)
+        self.remove_old()
+
+    def remove_old(self):
+        cutoff = time.time() - self.cap
+        for i in range(len(self.values)):
+            if self.values[i][0] < cutoff:
+                self.sum -= self.values[i][1]
+            else:
+                break
+        self.values = self.values[i:]
 
     def length(self) -> int:
         return len(self.values)
@@ -96,16 +120,17 @@ class StatCounter:
     def get_average(self):
         return float(self.sum) / len(self.values)
 
-    def get_latest(self):
-        return self.values[-1]
+
+def is_daytime():
+    now = datetime.datetime.now(tz=ZoneInfo("America/Los_Angeles"))
+    return now.hour >= 9 and now.hour < 18
 
 
 class Session:
     def __init__(self, vehicle, powerwall) -> None:
         self._vehicle = vehicle
         self._powerwall = powerwall
-        self._solar_counter = StatCounter(cap=100)
-        self._surplus_counter = StatCounter(cap=10)
+        self._surplus_counter = StatCounter(cap=300)
         pass
 
     def start(self):
@@ -133,6 +158,9 @@ class Session:
         print(datetime.datetime.now())
         power = self._powerwall.refresh_status()
         status = self._vehicle.refresh_status()
+        if not (is_daytime() and self._powerwall.has_enough_power()):
+            print("Outside of day time and not enough power, ending session.")
+            return False
         if status == 'asleep':
             print('Vehicle is asleep, waking up')
             self._vehicle.wake_up()
@@ -145,11 +173,6 @@ class Session:
             return False
 
         voltage, _, current_charging_power = self._vehicle.get_charging_power()
-        self._solar_counter.add(power.get('solar_power'))
-        if self._solar_counter.length() > 10 and self._solar_counter.get_average() < 1000:
-            print("Solar power in the last {} minutes is {}W, exiting.".format(
-                self._solar_counter.length() / 2, round(self._solar_counter.get_average())))
-            exit()
 
         surplus = power.get('solar_power') - \
             power.get('load_power') + current_charging_power
@@ -161,7 +184,7 @@ class Session:
 
         self._surplus_counter.add(surplus)
         average_surplus = self._surplus_counter.get_average()
-        print("Average surplus of the last {} values: {}W".format(
+        print("Average surplus of the last {} readings: {}W".format(
             self._surplus_counter.length(), round(average_surplus)))
 
         powerwall_power = self._powerwall.allocate_power()
@@ -192,7 +215,13 @@ def main():
             powerwalls.append(
                 Powerwall(tesla, product['energy_site_id'], product['site_name']))
 
+    powerwall = powerwalls[0]
     while True:
+        powerwall.refresh_status()
+        if not (is_daytime() and powerwall.has_enough_power()):
+            print("Outside of day time and not enough power, sleeping for an hour.")
+            time.sleep(3600)
+
         for vehicle in vehicles:
             status = vehicle.refresh_status()
             if status == 'asleep':
@@ -205,11 +234,11 @@ def main():
                 print("Vehicle {} is completed".format(vehicle.display_name))
                 continue
 
-            session = Session(vehicle, powerwalls[0])
+            session = Session(vehicle, powerwall)
             session.start()
 
         print('\n')
-        time.sleep(30)
+        time.sleep(300)
 
 
 if __name__ == '__main__':

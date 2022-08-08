@@ -17,8 +17,6 @@ Power management
 
 Bells and whistles
 - Web management interface
+- Grafana dashboard
 - Multiple users
 - Notifications
-- Start/stop at sunrise/sunset
-  - Move solar stats to Powerwall class
-  - Monitor solar output off-session
