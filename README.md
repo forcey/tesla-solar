@@ -6,8 +6,7 @@ docker run -d -v $PWD:/data -e CREDENTIALS=/data/credentials.json tesla-solar:ar
 
 To build docker image & run remotely (x86):
 ```
-docker buildx build --platform=linux/amd64 -t tesla-solar:amd64 .
-docker save tesla-solar:amd64 | gzip > /tmp/tesla-solar.tar.gz
+docker buildx build --platform=linux/amd64 -t ghcr.io/forcey/tesla-solar:amd64 --push .
 ```
 
 To copy credentials out from docker container:

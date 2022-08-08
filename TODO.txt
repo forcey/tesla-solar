@@ -20,4 +20,3 @@ Bells and whistles
 - Grafana dashboard
 - Multiple users
 - Notifications
-- Github docker registry
