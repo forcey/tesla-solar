@@ -17,9 +17,6 @@ Power management
 
 Bells and whistles
 - Web management interface
-- Containerize for remote hosting
-  - Multiple architecture image
-  - Some kind of secret management
 - Multiple users
 - Notifications
 - Start/stop at sunrise/sunset
