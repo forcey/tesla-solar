@@ -1,4 +1,3 @@
-from threading import local
 import time
 import api
 import os
@@ -91,10 +90,10 @@ class Powerwall:
                 self._solar_counter.length(), self._solar_counter.get_average()))
             return False
 
-    def get_capacity(self, percent=100) -> int:
+    def get_capacity(self, percent=100) -> float:
         return self.status.get('total_pack_energy') * percent / 100
 
-    def allocate_power(self) -> int:
+    def allocate_power(self) -> float:
         percent = self.percent_charged()
         if percent < 90:
             # Watts required to charge to 90% in 5 minutes.
