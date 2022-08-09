@@ -16,6 +16,7 @@ Power management
   - Predict solar generation / load based on historical data?
 
 Bells and whistles
+- Configuration file for all the constants
 - Web management interface
 - Grafana dashboard
 - Multiple users

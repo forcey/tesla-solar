@@ -1,10 +1,22 @@
-import datetime
+from threading import local
 import time
 import api
 import os
 
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Tuple
+
+time_zone = ZoneInfo("America/Los_Angeles")
+
+
+def local_time():
+    return datetime.now(tz=time_zone)
+
+
+def is_daytime():
+    now = local_time()
+    return now.hour >= 9 and now.hour < 18
 
 
 class Vehicle:
@@ -79,12 +91,14 @@ class Powerwall:
                 self._solar_counter.length(), self._solar_counter.get_average()))
             return False
 
+    def get_capacity(self, percent=100) -> int:
+        return self.status.get('total_pack_energy') * percent / 100
+
     def allocate_power(self) -> int:
         percent = self.percent_charged()
         if percent < 90:
             # Watts required to charge to 90% in 5 minutes.
-            watts = min(5000, (90-percent) *
-                        self.status.get('total_pack_energy') / 100 * 60 / 5)
+            watts = min(5000, self.get_capacity(90-percent) * 60 / 5)
             print(
                 "Powerwall is {:.2f}% charged, allowing {}W to powerwall.".format(percent, round(watts)))
             return watts
@@ -118,12 +132,7 @@ class StatCounter:
         return len(self.values)
 
     def get_average(self):
-        return float(self.sum) / len(self.values)
-
-
-def is_daytime():
-    now = datetime.datetime.now(tz=ZoneInfo("America/Los_Angeles"))
-    return now.hour >= 9 and now.hour < 18
+        return self.sum / len(self.values)
 
 
 class Session:
@@ -155,7 +164,7 @@ class Session:
 
     # Returns True if the loop should continue, False if it should end.
     def _cycle(self) -> bool:
-        print(datetime.datetime.now())
+        print(local_time())
         power = self._powerwall.refresh_status()
         status = self._vehicle.refresh_status()
         if not self._powerwall.has_enough_power():
@@ -220,9 +229,13 @@ def main():
         powerwall.refresh_status()
         if not (powerwall.percent_charged() > 80 and powerwall.has_enough_power()):
             if is_daytime():
-                print("Powerwall is {:.2f}% charged, with {}W of solar power. Checking again in 15 minutes.".format(
-                    powerwall.percent_charged(), round(powerwall.status.get('solar_power'))))
-                time.sleep(15 * 60)
+                # Minimum time required to charge powerwall to 80% (at 5kW), clamped to [5min, 60min].
+                delay = powerwall.get_capacity(
+                    80 - powerwall.percent_charged()) * 60 / 5000
+                delay = max(min(delay, 60), 5)
+                print("Powerwall is {:.2f}% charged, with {}W of solar power. Checking again in {} minutes.".format(
+                    powerwall.percent_charged(), round(powerwall.status.get('solar_power'), round(delay))))
+                time.sleep(delay * 60)
             else:
                 print("Outside of day time, checking again in an hour.")
                 time.sleep(3600)

@@ -8,8 +8,3 @@ To build docker image & run remotely (x86):
 ```
 docker buildx build --platform=linux/amd64 -t ghcr.io/forcey/tesla-solar:amd64 --push .
 ```
-
-To copy credentials out from docker container:
-```
-docker cp <container>:/usr/src/app/credentials.json .
-```
