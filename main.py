@@ -233,7 +233,9 @@ def main():
                     80 - powerwall.percent_charged()) * 60 / 5000
                 delay = max(min(delay, 60), 5)
                 print("Powerwall is {:.2f}% charged, with {}W of solar power. Checking again in {} minutes.".format(
-                    powerwall.percent_charged(), round(powerwall.status.get('solar_power'), round(delay))))
+                    powerwall.percent_charged(),
+                    round(powerwall.status.get('solar_power')),
+                    round(delay)))
                 time.sleep(delay * 60)
             else:
                 print("Outside of day time, checking again in an hour.")
