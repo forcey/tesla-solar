@@ -51,6 +51,12 @@ class Vehicle:
         r = self.api.set_charging_amp(self.vehicle_id, amp)
         print(r.response())
 
+    def charge_stop(self):
+        if self.charge_state.get('charging_state') == 'Charging':
+            print("Stopping charging")
+            r = self.api.charge_stop(self.vehicle_id)
+            print(r.response())
+
     def get_charging_power(self) -> Tuple[int, int, int]:
         if self.charge_state.get('charging_state') == 'Stopped':
             print("Charging is stopped")
@@ -160,6 +166,8 @@ class Session:
                     break
             print('\n')
             time.sleep(30)
+
+        self._vehicle.charge_stop()
 
     # Returns True if the loop should continue, False if it should end.
     def _cycle(self) -> bool:
