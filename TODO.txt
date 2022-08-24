@@ -6,9 +6,6 @@ Auth
 - Initial auth
 
 Power management
-- Wake up asleep vehicle as needed
-  - When there is significant surplus power
-  - If disconnected, don't wake up again until the next day.
 - Exclude offsite charging sessions
 - Smarter smoothing function
   - Determine N by stdev?

@@ -23,6 +23,7 @@ class Vehicle:
         self.api = api
         self.vehicle_id = vehicle_id
         self.display_name = display_name
+        self._last_wake_up = 0
 
     def refresh_status(self):
         config = self.api.vehicle_config(self.vehicle_id)
@@ -34,7 +35,13 @@ class Vehicle:
 
     def wake_up(self):
         r = self.api.wake_up(self.vehicle_id)
+        self._last_wake_up = time.time()
         print(r.response())
+
+    def maybe_wake_up(self):
+        # Only wake up once every 8 hours.
+        if time.time() - self._last_wake_up > 8 * 3600:
+            self.wake_up()
 
     def _set_charging_amp(self, amp):
         if amp == 0:
@@ -254,6 +261,7 @@ def main():
             status = vehicle.refresh_status()
             if status == 'asleep':
                 print("Vehicle {} is asleep".format(vehicle.display_name))
+                vehicle.maybe_wake_up()
                 continue
             if status == 'Disconnected':
                 print("Vehicle {} is disconnected".format(vehicle.display_name))
