@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from typing import Tuple
 
 time_zone = ZoneInfo("America/Los_Angeles")
+MAX_AMPS = 32
 
 
 def local_time():
@@ -76,7 +77,7 @@ class Vehicle:
             return voltage, amp, power
 
     def set_charging_power(self, power, voltage):
-        amp = round(max(0, min(40, power / voltage)))
+        amp = round(max(0, min(MAX_AMPS, power / voltage)))
         self._set_charging_amp(amp)
 
 
